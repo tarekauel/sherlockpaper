@@ -1,0 +1,182 @@
+%!TEX root = main.tex
+\section{Sherlock}
+\subsection{Introduction}
+Sherlock is the developed profiling tool.
+
+\subsection{Jalangi}
+Jalangi is a dynamic analysis framework for Javascript. It does allow to implement plugins which implement certain functions. Jalangi calls the functions of the plugin, whenever the corresponding event does occur. The functions that Sherlock uses are explained in the following paragraphs:
+
+\begin{itemize}
+\item{\textbf{binary}} The \texttt{binary} callback is called after the execution of a binary operation, i.e. \js{<, +, ==, !=, >=}.
+
+\item{\textbf{conditional}} The \texttt{conditional} callback is called after a condition check before branching, i.e. \js{if, switch, while, &&, ||}.
+
+\item{\textbf{endExecution}} The \texttt{endExecution} callback is called, when the execution terminated in node.js.
+
+\item{\textbf{endExpression}} The \texttt{endExpression} callback is called, when an expression is evaluated and its value is discarded.
+
+\item{\textbf{invokeFunPre}} The \texttt{invokeFunPre} callback is called, before a function is invoked.
+
+\item{\textbf{functionEnter}} The \texttt{functionEnter} callback is called, when a function is entered.
+
+\item{\textbf{functionExit}} The \texttt{functionEnter} callback is called, when the execution of the body of a function finishes.
+
+\item{\textbf{getFieldPre}} The \texttt{getFieldPre} callback is called, before a value of a property or element is read, i.e. \js{var x = a.name}.
+
+\item{\textbf{getFieldPre}} The \texttt{putFieldPre} callback is called, before a value of a property or element is set, i.e. \js{a.name = 5}.
+
+\item{\textbf{literal}} The \texttt{literal} callback is called, after the creation of a literal, i.e. \js{'bmw'}.
+
+\item{\textbf{write}} The \texttt{write} callback is called, before a variable is writte, i.e. \js{a = b}.
+
+\end{itemize}
+
+These are all hooks that Sherlock uses in order to profile the execution of a program. The plugin maintains some variables during the execution:
+
+\begin{itemize}
+\item{\textbf{callStack}} is an array of \js{strings} that represent the current call stack. The call stack is cleared, if \js{endExpression} is called. 
+
+\item{\textbf{allRefs}} is an array of \js{References} that the plugin tracks at the moment.
+\end{itemize}
+
+Some other variables are explained later, when their purpose is explained.
+
+\subsection{Reference objects}
+
+The central data structure is called \js{Reference}. For every object or array that Sherlock tracks exactly one \js{Reference} object does exists. One \js{Reference} object may keep track of multiple references to the object. A UML representation can be found in Figure \ref{fig:uml_ref}. The properties are explained first. The general purpose functions are explained too. All other functions are explained later, when the analysis is described in more detail.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture} 
+\umlclass[x=0,y=0]{Reference}{
+- optVer : Object \\
+- isOpt : Boolean \\
+- locked : Boolean \\
+- lockedValues : Object \\
+- references : Array \\
+- condLevel : int 
+}{
+- allFree() : Boolean \\
+- checkLock(index : int) : Boolean \\
+- isArray() : Boolean \\
++ concat(args : Array) : void \\
++ callOnUnlocked(f : Function, args : Array) : void \\
++ push(val : integer) : void \\
++ pop(val : integer) : void \\
++ update(offset : integer, val : integer) : void \\
++ addRef(name : String, iid : integer) : void \\
++ equals(val : Object) \\
++ lock(index : integer) \\
++ get() : Object \\
++ getReferences() : String
+} 
+\end{tikzpicture}
+\caption{Central data structure to track references.}\label{fig:uml_ref}
+\end{figure}
+
+The following enumeration explains the purpose of all properties of a reference:
+
+\begin{itemize}
+\item{\textbf{optVer}} is a copy, not a reference, of the object that is represented by this reference. This is not a deep copy. Properties of this object, which are references, refer to the same object as the original object. Primitive values are copied.
+
+\item{\textbf{isOpt}} is a boolean flag, which is \js{false} if the object has not been optimized and \js{true} if it has been optimized.
+
+\item{\textbf{locked}} indicates if the reference is locked. If a reference is locked, it must not be optimized further, e.g. because it has been read already. 
+
+\item{\textbf{lockedValues}} is an associative array. Each element states if an array index or an object property is locked. If it is locked, it must not be changed anymore. The key of the arrays are the index or property name and the value is \js{true}. If an entry does not exists it is considered to be unlocked. Typically locked elements / properties do have a reference in this array. The associative array is implemented by using an object.
+
+\item{\textbf{references}} is an array of objects. Each object represents a reference to this object. The only property of an object in this array is \js{name}. Nevertheless, object is chosen as type in order to be flexible to extend this with additional information, e.g. line of code.
+
+\item{\textbf{condLevel}} is an integer value that specifies the depth of conditions where this object has been created. This is necessary in order to do the optimizations correctly even if conditionals are nested.
+\end{itemize}
+
+In the following list the general purpose methods are explained:
+
+\begin{itemize}
+
+\item{\textbf{allFree}} is a function which checks whether the reference is not locked (\js{locked === false}) and no element or property is locked. The function is used for example, if a function such as \js{reverse()} manipulates all elements of an array.
+
+\item{\textbf{checkLock}} checks if a specific element or property is locked. If it is locked, it must not be modified. If no index is provided, it checks if the reference is not blocked and if the current condition level allows to modify the array. The conditional lock mechanism is explained later in more detail. It is important to mention that \js{checkLock} may return \js{true}, even though \js{allFree} returns \js{false}. Listing \ref{fig:allfree_checklock} is an example that highlights the difference.
+
+\item{\textbf{isArray}} is a simple check which returns \js{true} if the reference refers to an Array and \js{false} if it refers to an object.
+
+\item{\textbf{update}} tries to update an array element or an object property. The \js{offset} parameter specified the element the \js{val} argument the value of the element. Before the value is written \js{checkLock(offset)} checks whether an optimization is allowed or not. If yes, it is performed and \js{isOpt} is set to \js{true}. If not, the \js{lockedValues[offset]} is set to \js{true}, because this potential optimization could not be done. Given that, a value assignment that comes afterwards can not be optimized because it would be overridden by the rejected one.
+
+\begin{figure}[htbp]
+\begin{lstlisting}[language=Javascript]
+{
+  locked: false,
+  lockedValues: {
+    0: true
+  }
+}
+\end{lstlisting}
+\caption{Difference of \js{allFree} and \js{checkLock}. \js{allFree} returns \js{false}, \js{checkLock} returns \js{true} for any value including \js{undefined} except of \js{0}.}\label{fig:allfree_checklock}
+\end{figure}
+
+\item{\textbf{addRef}} adds a reference to this reference. That does mean that a new identifier refers to the object that is represented by the reference object. The \js{name} and the \js{iid} is provided. The former one is stored. The latter one could be used to get additional information such as the line of code.
+
+\item{\textbf{lock}} locks the full reference (sets property \js{locked = true}) if no index is provided. If an index is provided the according value in \js{lockedValues} will be set to \js{true}.
+\end{itemize}
+
+\subsection{Capturing a new array or object}
+The creation of an object itself is not captured in Sherlock, but the assignment to a variable, by using the \js{write} callback. Whenever write is called, Sherlock checks if the object or array that is assigned, is already represented by a reference in \js{allRefs}. If yes, a new reference with the variable name is added to the references. If not, a new \js{Reference} object is created and append to \js{allRefs}.
+
+Typically an object or array and all its properties or elements are unlocked. Listing \ref{fig:array_lock} shows an example where the reference is locked immediately. The reason is that \js{someFunction()} may have arbitrary side effect and must not be optimized. Unfortunately, it is almost impossible to determine the index of the element that is assigned by the function call. Hence, the reference is locked in order to decrease the probability of false positives.
+
+\begin{figure}[htbp]
+\begin{lstlisting}[language=Javascript]
+var a = [0, someFunction()];
+a[0] = 1;
+a[1] = 2;
+\end{lstlisting}
+\caption{Example for an array that is immediately locked after creation. Neither index \js{0} nor index \js{1} is optimized.}\label{fig:array_lock}
+\end{figure}
+
+\subsection{Optimize array elements or object properties}
+Listing \ref{fig:field_example} shows a typical example for a potential early property and array element initialization. Line $2$ and line $5$ could be removed and the assignment added in line $1$ and line $4$.
+
+\begin{figure}[htbp]
+\begin{lstlisting}[language=Javascript]
+var a = [];
+a[0] = 1;
+
+var b = {};
+b.a = 5;
+\end{lstlisting}
+\caption{Example for a typical potential early property and array element initialization}\label{fig:field_example}
+\end{figure}
+
+Sherlock captures this using the \js{putFieldPre} callback. The new value and the reference to the object is given. Using the reference Sherlock can get the reference object and store the value in a temporary storage. At the end of a statement it is checked if a \js{functionExit} is part of the call stack. If yes, the element or property is not modified but locked, because a function call was potentially involved by creating the value. Because we cannot do any statement about side effect of the function call, it cannot be optimized. If not, the property or element is modified and optimized. The \js{update} function checks still if the optimization is allowed. The variable \js{lastPut} is used to store the necessary information of \js{putFieldPre} until the put is evaluated in \js{endExpression}.
+
+
+\subsection{Lock read values}
+Whenever an object property or an array element is read, it cannot be optimized further. The callback \js{getFieldPre} allows to easily detect when a property or element is read. Because Javascript uses references, the reference can be used to identify the reference and to call \js{lock(offset)} with the offset that was used. If the \js{length} of an array is read, it might be necessary to lock the reference. Listing \ref{fig:array_length} shows two different examples. The read of \js{a.length} is okay and equal to \js{a.push}. Hence, the optimized version of \js{a} would be \js{[0, 1]}. But the \js{b} must not be optimized to \js{[1, 2, 3, 4]}, because this would change the semantics. Sherlock can deal with that by storing the \js{getFieldPre} call in a temporary storage. At the end of the execution it is analyzed if \js{length} was used as synonym for $push$. \js{c} and \js{d} show two corner cases that are not supported. It turns out that it is very hard to distinguish \js{c} and \js{d} using Jalangi. Therefore, Sherlock does only support \js{length} as synonym for \js{push}, if no further \js{binary} operation is involved.
+
+\begin{figure}[htbp]
+\begin{lstlisting}[language=Javascript]
+var a = [];
+a[a.length] = 0;
+a[1] = 1;
+
+var b = [1, 2, 3];
+console.log(b.length);
+b[3] = 4;
+
+var c = [];
+c[c.length - 1] = 0;
+
+var d = [];
+d[0] = d.length - 1;
+\end{lstlisting}
+\caption{}\label{fig:array_length}
+\end{figure}
+
+
+
+
+
+
+
+
+
