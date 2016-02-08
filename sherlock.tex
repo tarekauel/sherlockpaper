@@ -102,8 +102,7 @@ In the following list the general purpose methods are explained:
 
 \item{\textbf{update}} tries to update an array element or an object property. The \js{offset} parameter specified the element the \js{val} argument the value of the element. Before the value is written \js{checkLock(offset)} checks whether an optimization is allowed or not. If yes, it is performed and \js{isOpt} is set to \js{true}. If not, the \js{lockedValues[offset]} is set to \js{true}, because this potential optimization could not be done. Given that, a value assignment that comes afterwards can not be optimized because it would be overridden by the rejected one.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[label=fig:allfree_checklock,caption={Difference of \js{allFree} and \js{checkLock}. \js{allFree} returns \js{false}, \js{checkLock} returns \js{true} for any value including \js{undefined} except of \js{0}.},language=Javascript]
 {
   locked: false,
   lockedValues: {
@@ -111,8 +110,6 @@ In the following list the general purpose methods are explained:
   }
 }
 \end{lstlisting}
-\caption{Difference of \js{allFree} and \js{checkLock}. \js{allFree} returns \js{false}, \js{checkLock} returns \js{true} for any value including \js{undefined} except of \js{0}.}\label{fig:allfree_checklock}
-\end{figure}
 
 \item{\textbf{addRef}} adds a reference to this reference. That does mean that a new identifier refers to the object that is represented by the reference object. The \js{name} and the \js{iid} is provided. The former one is stored. The latter one could be used to get additional information such as the line of code.
 
@@ -124,28 +121,22 @@ The creation of an object itself is not captured in Sherlock, but the assignment
 
 Typically an object or array and all its properties or elements are unlocked. Listing \ref{fig:array_lock} shows an example where the reference is locked immediately. The reason is that \js{someFunction()} may have arbitrary side effect and must not be optimized. Unfortunately, it is almost impossible to determine the index of the element that is assigned by the function call. Hence, the reference is locked in order to decrease the probability of false positives.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[caption={Example for an array that is immediately locked after creation. Neither index \js{0} nor index \js{1} is optimized.},language=Javascript,label=fig:array_lock]
 var a = [0, someFunction()];
 a[0] = 1;
 a[1] = 2;
 \end{lstlisting}
-\caption{Example for an array that is immediately locked after creation. Neither index \js{0} nor index \js{1} is optimized.}\label{fig:array_lock}
-\end{figure}
 
 \subsection{Optimize array elements or object properties}
 Listing \ref{fig:field_example} shows a typical example for a potential early property and array element initialization. Line $2$ and line $5$ could be removed and the assignment added in line $1$ and line $4$.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[caption={Example for a typical potential early property and array element initialization},label={fig:field_example},language=Javascript]
 var a = [];
 a[0] = 1;
 
 var b = {};
 b.a = 5;
 \end{lstlisting}
-\caption{Example for a typical potential early property and array element initialization}\label{fig:field_example}
-\end{figure}
 
 Sherlock captures this using the \js{putFieldPre} callback. The new value and the reference to the object is given. Using the reference Sherlock can get the reference object and store the value in a temporary storage. At the end of a statement it is checked if a \js{functionExit} is part of the call stack. If yes, the element or property is not modified but locked, because a function call was potentially involved by creating the value. Because we cannot do any statement about side effect of the function call, it cannot be optimized. If not, the property or element is modified and optimized. The \js{update} function checks still if the optimization is allowed. The variable \js{lastPut} is used to store the necessary information of \js{putFieldPre} until the put is evaluated in \js{endExpression}.
 
@@ -153,8 +144,7 @@ Sherlock captures this using the \js{putFieldPre} callback. The new value and th
 \subsection{Lock read values}
 Whenever an object property or an array element is read, it cannot be optimized further. The callback \js{getFieldPre} allows to easily detect when a property or element is read. Because Javascript uses references, the reference can be used to identify the reference and to call \js{lock(offset)} with the offset that was used. If the \js{length} of an array is read, it might be necessary to lock the reference. Listing \ref{fig:array_length} shows two different examples. The read of \js{a.length} is okay and equal to \js{a.push}. Hence, the optimized version of \js{a} would be \js{[0, 1]}. But the \js{b} must not be optimized to \js{[1, 2, 3, 4]}, because this would change the semantics. Sherlock can deal with that by storing the \js{getFieldPre} call in a temporary storage. At the end of the execution it is analyzed if \js{length} was used as synonym for \js{push}. \js{c} and \js{d} show two corner cases that are not supported. It turns out that it is very hard to distinguish \js{c} and \js{d} using Jalangi. Therefore, Sherlock does only support \js{length} as synonym for \js{push}, if no further \js{binary} operation is involved.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[label=fig:array_length,caption={...},language=Javascript]
 var a = [];
 a[a.length] = 0;
 a[1] = 1;
@@ -169,8 +159,6 @@ c[c.length - 1] = 0;
 var d = [];
 d[0] = d.length - 1;
 \end{lstlisting}
-\caption{}\label{fig:array_length}
-\end{figure}
 
 
 \subsection{Handle transformation functions}
@@ -178,13 +166,10 @@ d[0] = d.length - 1;
 
 So far it is explained how Sherlock handles property / array element updates and reads. But Javascript does have many built in functions that either manipulate the array or that do provide other capabilities. Listing \ref{fig:array_function} shows a function call that can be optimized. Sherlock separates the built in functions in four groups:
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[label={fig:array_function},caption={...},language=Javascript]
 var a = [1, 2, 3, 4];
 a.revere();
 \end{lstlisting}
-\caption{}\label{fig:array_function}
-\end{figure}
 
 \begin{itemize}
 \item{\textbf{Ignore}} Methods that belong to the group do not change the state or do effect the reference in any way. The only method that belongs to this group is \js{Object.prototype.isPrototypeOf}.
@@ -235,11 +220,23 @@ a.revere();
 \end{itemize}
 \end{itemize}
 
+\subsection{Dealing with functions}
+In all optimizations that Sherlock may propose functions do require a special investigation. Whenever a function is part of a statement Sherlock cannot be sure, whether the function has some side effects or not. In Figure \ref{fig:array_lock} we already explained, why we cannot optimize an array further, which has at least one element that is initialized with the return value of a function. But this is not the only case where functions must not be optimized. In Figure \ref{fig:example_functions} there are two additional examples: in line $3$ the return value of a function is assigned to an element. One must not optimize it, by initializing the array with the return value. But it would be allowed to move the function to the initialization. Sherlock does not recommend this, because the function might use variables which are initialized after the array initialization and it reduces the readability if the array initialization contains function calls. in line 7 the array index is given by the return value of a function. This must not be optimized, because the one cannot assume that the return value is always the same. Besides, side effect could be lost. Hence, both cases must not be optimized and Sherlock does simply ignore them and knows that the elements may not be optimized further.
+
+\begin{lstlisting}[label={fig:example_functions},language=Javascript,caption={...}]
+var a = [];
+a.push(1);
+a[1] = (function(){return 0;})();
+
+var b = [];
+b.push(1);
+b[(function(){return 1;})()] = 1;
+\end{lstlisting}
+
 \subsection{Dealing with conditioned updates}
 Sherlock can not simply optimize any update that is applied to a property or element, even if the property or element has not been read yet. Listing \ref{fig:example_cond} shows a simple example that shows which updates are allowed and which are not. \js{a} can safely optimized to \js{[5, 2, 3]} and \js{b} to \js{[1, 3, 3]}. The statement in line $4$ must not be optimized, because Sherlock does not know, if \js{condition} will always be \js{true}. The same applies for the statement in line $6$. Even tough line $9$ is always executed if line $3$ is executed, it must not be optimized. The reason is that if \js{otherCondition} is \js{true} \js{b} would be $7$ at the end of the execution instead of $5$. In this particular scenario \js{b[0]} could be optimized to $5$ and line $7$ and $10$ could be removed. But because Sherlock does not keep track of property writes that are conditioned but are not read before they are updated unconditioned, it simply locks the value in line $7$. This follows the goal to minimize the number of false positives and prefer being too restrictive.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[label={fig:example_cond},language=Javascript,caption={...}]
 var a = [1, 2, 3];
 
 if (condition) {
@@ -256,15 +253,12 @@ if (condition) {
 a[0] = 5;
 a[2] = 0;
 \end{lstlisting}
-\caption{}\label{fig:example_cond}
-\end{figure}
 
 Jalangi does have a callback for conditionals which is called whenever a conditional check is performance. But Jalangi has no callback to identify the end of the branching. In a first version of Sherlock assumed that a branching finished at the end of the current function. This is very restrictive and limits the capabilities, especially because arguments of functions are often checked by a couple of \js{if} statements before the actual logic of a function is implemented. Sherlock had no chance to optimize arrays or objects in this use cases. But the problem is partially solved. 
 
 Before code is executed it is instrumented with a simple literal \js{'da0b52b0ab43721cda3399320ca940a5a0e571ee'}. This literal is a signal for Sherlock that a conditioned branch finished. An example for instrumented code can be seen in figure \ref{fig:example_cond_instrum}. Jalangi calls the callback for conditionals multiple times, if the condition exists out of multiple binary equations. Because of that the literal appears twice (line $7-8$). A condition is checked $n + 1$ times for a loop which has $n$ iterations. This is solved by adding the literal at the end of the body loop and immediately after the end of a loop.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[caption={...},label=fig:example_cond_instrum,language=Javascript]
 // ...
 while (condition) {
     // ...
@@ -287,13 +281,10 @@ while (condition) {
 x[0] = 1;
 // ...
 \end{lstlisting}
-\caption{}\label{fig:example_cond_instrum}
-\end{figure}
 
 Each reference has a \js{condLevel} property (see figure \ref{fig:uml_ref}). Besides a global counter does exist which contains the current level of conditions. In listing \ref{fig:example_cond_instrum} the level would be $0$ in line $1$, $1$ in line $4$, $3$ and line $6$, $1$ in line $10$ and so and so forth. \js{condLevel} is set to the conditional level if a reference is created. Each optimization has to be on the same level as \js{condLevel}. If the level is higher, it must not be applied. If the global conditional level is lower than \js{condLevel}, the reference is locked. Javascript hoists the definition of variables to the scope of the current function. A variable cannot be created in the scope of an \js{if}. The variable \js{x} can be accessed in line 20 in listing \ref{fig:example_cond_instrum}. By locking the \js{condLevel} it is prevented that a false optimization is done. If the reference would not be locked, Sherlock would think that it can optimize \js{x} in listing \ref{fig:example_cond_instrum_2}.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[language=Javascript]
+\begin{lstlisting}[language=Javascript,caption={...},label=fig:example_cond_instrum_2]
 if (condition) {
   // condition level = 1
   var x = [];
@@ -305,8 +296,6 @@ if (otherCondition) {
   x[0] = 5;
 }
 \end{lstlisting}
-\caption{}\label{fig:example_cond_instrum_2}
-\end{figure}
 
 
 

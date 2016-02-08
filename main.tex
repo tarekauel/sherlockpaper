@@ -27,7 +27,7 @@
 \usepackage{tikz}
 \usepackage{tikz-uml}
 \tikzumlset{fill class=white}
-
+\usepackage{microtype}
 
 \lstdefinelanguage{JavaScript}{
   keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
@@ -57,11 +57,36 @@
    tabsize=2,
    breaklines=true,
    showtabs=false,
-   captionpos=b
+   captionpos=b,
+   escapeinside=||,
+   numberblanklines=false
 }
 
 
 \newcommand{\js}[1]{\lstinline[language=Javascript]$#1$}
+\newcommand{\bash}[1]{\lstinline[language=bash]$#1$}
+
+\let\origthelstnumber\thelstnumber
+\makeatletter
+\newcommand*\Suppressnumber{%
+  \lst@AddToHook{OnNewLine}{%
+    \let\thelstnumber\relax%
+     \advance\c@lstnumber-\@ne\relax%
+    }%
+}
+
+\newcommand*\Reactivatenumber[1]{%
+  \setcounter{lstnumber}{\numexpr#1-1\relax}
+  \lst@AddToHook{OnNewLine}{%
+   \let\thelstnumber\origthelstnumber%
+   \refstepcounter{lstnumber}
+  }%
+}
+
+
+\makeatother
+
+\makeatother
 
 \begin{document}
 
