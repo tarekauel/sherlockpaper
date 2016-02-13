@@ -1,14 +1,20 @@
 %!TEX root = ./main.tex
 \section{Goal}
 \label{sec:goal}
-The goal of the developed profiling tool is to find opportunities for early object property and array element initializations as shown in listing \ref{list:example1}. The array \js{a} could be initialized with \js{[1]}. In order to do this the analysis has to keep track of the usage of the elements or properties.
+The goal of the developed profiling tool is to find opportunities for early object property and array element 
+initializations as shown in listing \ref{list:example1}. The array \js{a} could be initialized with \js{[1]}. 
+In order to do this the analysis has to keep track of the usage of the elements or properties.
 
 \begin{lstlisting}[language=Javascript,caption={Example for early array element initialization.},label={list:example1}]
 var a = []
 a.push(1);
 \end{lstlisting}
 
-If an initialization is conditioned, e.g. in a branch of an \js{if} clause or in the body of a loop, it must not be optimized, because the optimization is known to be potentially invalid for many inputs. Besides, an element or property that has been read cannot be optimized afterwards, because this would change the behavior of the program. But if the scope does allow to do an optimization it has to be done. In listing \ref{list:example4} \js{a} cannot be optimized but \js{b} can.
+If an initialization is conditioned, e.g. in a branch of an \js{if} clause or in the body of a loop,
+ it must not be optimized, because the optimization is known to be potentially invalid for many inputs.
+ Besides, an element or property that has been read cannot be optimized afterwards, because this would 
+ change the behavior of the program. But if the scope does allow to do an optimization it has to be done. 
+ In listing \ref{list:example4} \js{a} cannot be optimized but \js{b} can.
 
 \begin{lstlisting}[language=Javascript,caption={Example for early array element initialization.},label={list:example4}]
 var a = []
@@ -19,7 +25,9 @@ if (cond) {
 }
 \end{lstlisting}
 
-Many default javascript function do exist that manipulate an array, such as \texttt{reverse}. If a function can be optimized this should be identified by the profiling tool, too. Listing \ref{list:example2} shows an example of unoptimized code (line $1-3$) and the optimized version (line $5-6$).
+Many default javascript function do exist that manipulate an array, such as \texttt{reverse}. 
+If a function can be optimized this should be identified by the profiling tool, too. Listing \ref{list:example2}
+ shows an example of unoptimized code (line $1-3$) and the optimized version (line $5-6$).
 
 \begin{lstlisting}[language=Javascript,caption={Example for an optimaziation.},label={list:example2}]
 var a = [1, 2, 3]
@@ -30,7 +38,11 @@ var a = [4, 3, 2, 1]
 b = a;
 \end{lstlisting}
 
-Only objects that are initialized by the object notation \js{\{\}} are considered. The objects may define already some properties such as \js{\{a: "name"\}}. Objects that are created using a constructor are not going to be considered, because optimizations may introduce many false positives. Listing \ref{list:example3} shows a constructor with one parameter. Neither \js{this.name = 'bmw'} in line $2$ nor  \js{var c = new car('bmw');} in line $6$ is equal to the original coding. In order to reduce the number of false positives and to limit the scope of the tool, constructors are not taken into account.
+Only objects that are initialized by the object notation \js{\{\}} are considered. The objects may define
+ already some properties such as \js{\{a: "name"\}}. Objects that are created using a constructor are not going to be considered, 
+ because optimizations may introduce many false positives. Listing \ref{list:example3} shows a constructor with one parameter. 
+ Neither \js{this.name = 'bmw'} in line $2$ nor  \js{var c = new car('bmw');} in line $6$ is equal to the original coding. 
+ In order to reduce the number of false positives and to limit the scope of the tool, constructors are not taken into account.
 
 \begin{lstlisting}[language=Javascript,caption={Example for an optimaziation.},label={list:example3}]
 function car(name) {
@@ -42,5 +54,6 @@ var c = new car();
 c.name = 'bmw';
 \end{lstlisting}
 
-One of the main goals of Sherlock is to keep the number of false positives as low as possible. Given that in some use cases it prefers not optimizing a value instead of running in a potential false positive situation.
+One of the main goals of Sherlock is to keep the number of false positives as low as possible. 
+Given that in some use cases it prefers not optimizing a value instead of running in a potential false positive situation.
 
