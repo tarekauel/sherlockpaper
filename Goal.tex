@@ -1,6 +1,6 @@
 %!TEX root = ./main.tex
 \section{Goal}
-
+\label{sec:goal}
 The goal of the developed profiling tool is to find opportunities for early object property and array element initializations as shown in listing \ref{list:example1}. The array \js{a} could be initialized with \js{[1]}. In order to do this the analysis has to keep track of the usage of the elements or properties.
 
 \begin{lstlisting}[language=Javascript,caption={Example for early array element initialization.},label={list:example1}]
@@ -43,3 +43,4 @@ c.name = 'bmw';
 \end{lstlisting}
 
 One of the main goals of Sherlock is to keep the number of false positives as low as possible. Given that in some use cases it prefers not optimizing a value instead of running in a potential false positive situation.
+

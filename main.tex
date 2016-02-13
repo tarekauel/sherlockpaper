@@ -28,6 +28,9 @@
 \usepackage{tikz-uml}
 \tikzumlset{fill class=white}
 \usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{makecell}
 
 \lstdefinelanguage{JavaScript}{
   keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
@@ -97,27 +100,30 @@
 
 \title{Sherlock: A Profiling Tool to Find Opportunities for Early Property Initialization}
 
-\authorinfo{Tarek Auel \& David G\"usewell}{}{}
+\authorinfo{Tarek Auel \& David G\"usewell}{ tarek.auel@stud.tu-darmstadt.de, davidnikolay.guesewell@stud.tu-darmstadt.de }{}
 
 \maketitle
 
 \begin{abstract}
-\blindtext % replace this with your own text
+We present a new dynamic analysis tool for JavaScript, named Sherlock. It uses the  dynamic analysis framework Jalangi. During the analysis Sherlock is able to detect opportunities for early property initialization and give a structured feedback. It is able to handle with many complex program structures like if-conditions or while-loops 
+and it support 27 built in JavaScript functions. One main strength of Sherlock is, it keeps the false positives as low as possible. With the proposed optimizations Sherlock can improve the readability of the analyzed code and therefore the maintainability.
 \end{abstract}
 
 
-\section{Introduction}
-\label{sec:introduction}
-
+\input{Introduction.tex}
 \input{Goal.tex}
 \input{Sherlock.tex}
 \input{Evaluation.tex}
+\input{Summary.tex}
+
+\section*{Acknowledgement}
+We thank M. Selakovic for the mentoring during the project, K. Sen and L. Gong for Jalangi, A. Hidayat for Esprima and Y.Suzuki for Estraverese and Escodegen.
+
 
 \bibliographystyle{abbrvnat}
 \bibliography{references}
 
 
-\bibliographystyle{abbrvnat}
 
 
 
