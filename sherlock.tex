@@ -383,7 +383,7 @@ x[0] = 1;
 Each reference has a \js{condLevel} property (see figure \ref{fig:uml_ref}). Besides
  a global counter does exist which contains the current level of conditions. In 
  listing \ref{fig:example_cond_instrum} the level would be $0$ in line $1$, $1$ in 
- line $4$, $3$ and line $6$, $1$ in line $10$ and so and so forth. \js{condLevel} 
+ line $4$, $3$ in line $6$, $1$ in line $10$ and so on and so forth. \js{condLevel} 
  is set to the conditional level if a reference is created. Each optimization has 
  to be on the same level as \js{condLevel}. If the level is higher, it must not be 
  applied. If the global conditional level is lower than \js{condLevel}, the reference 
