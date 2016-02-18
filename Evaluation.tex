@@ -1,18 +1,34 @@
 %!TEX root = main.tex
 \section{Evaluation}
-
-In order to evaluate the results, it was a given requirement to check, whether Sherlock can find anything that could be optimized in the Octane benchmark. The results of that are presented first, afterwards a general evaluation of the capabilities of Sherlock is given.
+\label{sec:evaluation}
+In order to evaluate the results, it was a given requirement to check, whether 
+Sherlock can find anything that could be optimized in the Octane benchmark. 
+The results of that are presented first, afterwards a general evaluation of the capabilities of Sherlock is given.
 
 \subsection{Performance improvements by Sherlock}
-Sherlocks helps finding opportunities for early property or element initialization. Most of the time this improves the readability. Because some statements are discarded, there might be a performance improvement, too.
+Sherlocks helps finding opportunities for early property or element initialization.
+ Most of the time this improves the readability. Because some statements are discarded, 
+ there might be a performance improvement, too.
 
-The following benchmarks has been executed on a MacBook Pro Late 2013 Intel(R) Core(TM) i7-4750HQ CPU @ 2.00GHz. v$0.12.9$ is the used nodejs version. \bash{gdate} is the GNU coreutils implementation of the UNIX \bash{date} function. The command that is used to measure the performance can be found in Listing \ref{list:perf_bash}. We decided to add the loop outside of nodejs in order to not run into just in time compiler optimizations.
+The following benchmarks has been executed on a MacBook Pro Late 2013 Intel(R) Core(TM) 
+i7-4750HQ CPU @ 2.00GHz. v$0.12.9$ is the used nodejs version. \bash{gdate} is the GNU
+ coreutils implementation of the UNIX \bash{date} function. The command that is used 
+ to measure the performance can be found in Listing \ref{list:perf_bash}. We decided 
+ to add the loop outside of nodejs in order to not run into just in time compiler optimizations.
 
 \begin{lstlisting}[caption=Performance testing commands,label=list:perf_bash,language=bash]
 gdate +%s%3N; for i in {0..1000}; do node optimized.js 2>&1 >/dev/null; done; gdate +%s%3N
 \end{lstlisting}
 
-Listing \ref{list:unopt_js_test} shows the unoptimized code. It basically exists of 100 push calls. In order to avoid that JavaScript removes them, the array is printed to \bash{stdout}. The optimized coding in Listing \ref{list:opt_js_test} initializes the array and prints it immediately. Table \ref{tab:perf_results} shows the measured runtimes. The first two lines show the runtime in milliseconds. The second and third line shows the runtime difference. Surprisingly, the unoptimized version is even faster for both number of iterations. The fifth and sixth line show the time that was needed per element. The last two lines show the runtime of the unoptimized version in relation to the optimized one.
+Listing \ref{list:unopt_js_test} shows the unoptimized code. It basically exists of 
+100 push calls. In order to avoid that JavaScript removes them, the array is printed
+ to \bash{stdout}. The optimized coding in Listing \ref{list:opt_js_test} initializes
+ the array and prints it immediately. Table \ref{tab:perf_results} shows the measured
+ runtimes. The first two lines show the runtime in milliseconds. The second and third
+ line shows the runtime difference. Surprisingly, the unoptimized version is even faster
+ for both number of iterations. The fifth and sixth line show the time that was needed
+ per element. The last two lines show the runtime of the unoptimized version in relation 
+ to the optimized one.
 
 
 \begin{lstlisting}[caption=Unoptimized test coding,label=list:unopt_js_test,language=JavaScript]
@@ -35,9 +51,9 @@ var a = [
 console.log(a);
 \end{lstlisting}
 
-\begin{table}
+\begin{table}[h]
 \begin{center}
-\newcommand*{\thead}[1]{\multicolumn{1}{c}{\bfseries #1}}
+\renewcommand{\thead}[1]{\multicolumn{1}{c}{\bfseries #1}}
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular}[htbp]{r|r|r}
 \thead{\# Iterations} & \thead{Optimized Coding} & \thead{Unoptimized Coding} \\
@@ -52,21 +68,40 @@ console.log(a);
 \hline $10,000$ & $100\ \%$ runtime & $99.80\ \%$ runtime \\ \hline
 \end{tabular}
 \end{center}
-\caption{Table}\label{tab:perf_results}
+\caption{Measured runtimes in ms including the runtime difference and the runtime per element.}\label{tab:perf_results}
 \end{table}
 
-The performance test shows that the optimized code might be even slightly slower. Because of incompatibility issues with Jalangi, Sherlock is forced to use a very old version of nodejs. In newer versions of nodejs the optimized code could be faster.
+The performance test shows that the optimized code might be even slightly slower. 
+Because of incompatibility issues with Jalangi, Sherlock is forced to use a very 
+old version of nodejs. In newer versions of nodejs the optimized code could be faster.
 
 
 
 \subsection{Octance}
 
-Unfortunately Sherlock is not capable to find any optimization in the Octane benchmark. Because there was no obvious reason for that a more detailed analysis was required.
+Unfortunately Sherlock is not capable to find any optimization in the Octane benchmark. 
+Because there was no obvious reason for that a more detailed analysis was required.
 
-We looked intensively at the \texttt{Richards} benchmark and the \texttt{Splay}. If one analyzes the coding of the benchmarks he can identify quickly why Sherlock could not find any optimization. First of all these benchmark use almost no plain object initialization. Sherlocks does not optimize constructors, because of the reasons mentioned earlier. But plain objects seems to be of almost no interest of the benchmark.
-Arrays are used sometimes in the benchmarks. The reason that Sherlock could not find an array optimization is that there are no. If arrays are used they are often initialized with values. If they are initialized as empty arrays, items are often added in loops, conditioned branches, function calls. An optimization can not be applied safely, if it is conditioned. The last thing that one notices while analyzing the benchmark, they do not utilize the default object or array methods. One of the focuses of Sherlock is optimizing built in JavaScript functions. Because the benchmarks do not use them, they could not be found.
+We looked intensively at the \texttt{Richards} benchmark and the \texttt{Splay}. If 
+one analyzes the coding of the benchmarks he can identify quickly why Sherlock could
+ not find any optimization. First of all these benchmark use almost no plain object
+ initialization. Sherlocks does not optimize constructors, because of the reasons 
+ mentioned earlier. But plain objects seems to be of almost no interest of the benchmark.
+Arrays are used sometimes in the benchmarks. The reason that Sherlock could not find
+ an array optimization is that there are no. If arrays are used they are often initialized
+ with values. If they are initialized as empty arrays, items are often added in loops, 
+ conditioned branches, function calls. An optimization can not be applied safely, if
+ it is conditioned. The last thing that one notices while analyzing the benchmark, 
+ they do not utilize the default object or array methods. One of the focuses of 
+ Sherlock is optimizing built in JavaScript functions. Because the benchmarks do
+ not use them, they could not be found.
 
-In order to check, whether Sherlock is capable to find an optimization in the coding, we instrumented the coding with plain objects and arrays that could be optimized. Listing \ref{list:instru_richards} shows the beginning of the function \js{runRichards} which we instrumented with a couple of statements. Sherlocks correctly determines that \js{a} can be optimized to \js{[1, 6]} and \js{b} to \js{[5, 2, 3]}. This shows that Sherlock can optimize code within benchmarks like Octane.
+In order to check, whether Sherlock is capable to find an optimization in the coding,
+ we instrumented the coding with plain objects and arrays that could be optimized. 
+ Listing \ref{list:instru_richards} shows the beginning of the function \js{runRichards}
+ which we instrumented with a couple of statements. Sherlocks correctly determines that
+ \js{a} can be optimized to \js{[1, 6]} and \js{b} to \js{[5, 2, 3]}. This shows that 
+ Sherlock can optimize code within benchmarks like Octane.
 
 \begin{lstlisting}[caption=Richards,label=list:instru_richards,language=Javascript]
 // ...
@@ -93,10 +128,26 @@ function runRichards() {
 \end{lstlisting}
 
 \subsection{Sherlocks capabilities}
-Even though Sherlock can cope already with many complex program structures, there are still some patterns known, where Sherlock is either too restrictive or doesn't get them right. 
-On of these code patterns is a \js{do-while} loop. The problem can be seen in Listing \ref{lst:dowhile} (line 1 -- 5). The instrumented literal in Line $2$ which tells Sherlock the end of a branching has to be only executed in the second execution of the loop or later. The literal in Line $5$ is used for the last check of \js{cond} which leaves the loop. Even though different patterns exist to mitigate this problem, Sherlock doesn't do this, yet. The first proposal would be to copy all statements and execute them before a \js{while} loop (line 7 -- 12). The second proposal would be to add a counter which masks the literal in line $2$ so that it is not executed in the first iteration (line 14 -- 21). Both solutions do modify the coding more heavily. The counter must have a name that was not used before. This becomes even more tricky if the loops are nested. Is it guaranteed that the semantics may never change, if we copy the statements (1\textsuperscript{st} approach)? Someone could do something that depends on the line number of the coding. If Sherlock copies the coding, there are two different line numbers for the statement. Because of all these difficulties, we decided to ignore this in this stage of development of Sherlock and decide later which Solution we do prefer.
+Even though Sherlock can cope already with many complex program structures, there are still
+ some patterns known, where Sherlock is either too restrictive or doesn't get them right. 
+On of these code patterns is a \js{do-while} loop. The problem can be seen in Listing
+ \ref{lst:dowhile} (line 1 -- 5). The instrumented literal in Line $2$ which tells 
+ Sherlock the end of a branching has to be only executed in the second execution of the
+ loop or later. The literal in Line $5$ is used for the last check of \js{cond} which 
+ leaves the loop. Even though different patterns exist to mitigate this problem, Sherlock
+ doesn't do this, yet. The first proposal would be to copy all statements and execute 
+ them before a \js{while} loop (line 7 -- 12). The second proposal would be to add a 
+ counter which masks the literal in line $2$ so that it is not executed in the first 
+ iteration (line 14 -- 21). Both solutions do modify the coding more heavily. The counter
+ must have a name that was not used before. This becomes even more tricky if the loops are
+ nested. Is it guaranteed that the semantics may never change, if we copy the statements
+ (1\textsuperscript{st} approach)? Someone could do something that depends on the line 
+ number of the coding. If Sherlock copies the coding, there are two different line 
+ numbers for the statement. Because of all these difficulties, we decided to ignore 
+ this in this stage of development of Sherlock and decide later which Solution we do prefer.
 
-\begin{lstlisting}[label=lst:dowhile,caption=Listing,language=Javascript]
+\begin{lstlisting}[label=lst:dowhile,caption=Example for do-while loop and how Sherlock can
+ handle them in future iterations.,language=Javascript]
 do {
   'da0b52...ee'; // but only if not 1st loop iteration
   // some statements
@@ -121,7 +172,14 @@ do {
 \end{lstlisting}
 
 
-All in all Sherlock supports 27 builtin JavaScript functions. Due to the fact, that Sherlock tries to report as few false positives as possible it is sometime more restrictive than it has to be. With a deeper tracking of the array elements, it would be possible to allow further optimizations after a \js{Array.prototype.slice} call. But the real world scenarios where this applies are rare. Sherlock can deal with conditioned writes and does know, whether an optimization is safe or not. Even nested structures or loops can be handled. So that, Sherlock does help to improve the readability and therefore the maintainability of coding.
+All in all Sherlock supports 27 built in JavaScript functions. Due to the fact, that
+ Sherlock tries to report as few false positives as possible it is sometime more 
+ restrictive than it has to be. With a deeper tracking of the array elements, it 
+ would be possible to allow further optimizations after a \js{Array.prototype.slice}
+ call. But the real world scenarios where this applies are rare. Sherlock can deal 
+ with conditioned writes and does know, whether an optimization is safe or not. Even
+ nested structures or loops can be handled. So that, Sherlock does help to improve 
+ the readability and therefore the maintainability of coding.
 
 
 
