@@ -1,13 +1,15 @@
 \section{Introduction}
 Within the course Program Testing and Analysis we were given a course project with the title
- "A Profiling Tool to find opportunities for Early Property Initialization". 
+ \glqq{}A Profiling Tool to find opportunities for Early Property Initialization\grqq{}. 
  The goal of the project was to design and develop a dynamic program analysis that finds potential  
  opportunities for early initialization of object properties and array elements 
  (at the time of an object/array creation) that are originally added later during the program execution.
  The tool should be able to analyze JavaScript files and use the dynamic analysis framework Jalangi ~\cite{jalangi}.
  Later the developed tool should be tested against Octane ~\cite{octance}, a benchmark for node.js The expected 
- benefits from tool were (i) improved code readability, and (ii) improved performance. In the following section
+ benefits from tool were (i) improved code readability, and (ii) improved performance.
+
+ In the following section
  we will firstly introduce the goals of our developed tool in a more detailed way. Section~\ref{sec:sherlock} 
- then explain the main techniques behind our Tool Sherlock, how it uses Jalangi and the main capability’s of it.
+ then explain the main techniques behind our tool Sherlock, how it uses Jalangi and the main capabilities of it.
  The Evaluation of Sherlock is in Section~\ref{sec:evaluation}. Finally Section~\ref{sec:summary} briefly summarize
  our approach.

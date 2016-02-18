@@ -170,7 +170,10 @@ do {
 } while(cond);
 'da0b52...ee';
 \end{lstlisting}
-
+So far Sherlock returns only an optimized version for each object or array that could
+be optimized. Because the preprocessing changes the lines of code it does not make 
+sense to return the lines of code that Jalangi proposes. A mapping to the original
+lines of code could improve the usability of the results of Sherlock.
 
 All in all Sherlock supports 27 built in JavaScript functions. Due to the fact, that
  Sherlock tries to report as few false positives as possible it is sometime more 
